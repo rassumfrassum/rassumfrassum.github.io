@@ -1,0 +1,362 @@
+openapi: "3.0.0"
+info:
+  title: "Derivation Manager - Determination Engine"  
+  description: >-
+    The determination engine should enrich and return incoming business activity metrics (BAM) data with the most relevant sustainability content data based on the search sequence, the factors maintained with different granularities, and the business activity metrics data used. In case no matching factor is found, return an error status for the particular business data record.  
+  version: 1.0.0
+servers:  
+- url: https://{org}-{space}-determination-engine-{domain}  
+  variables:
+    org:
+      default: '' 
+    space:
+      default: ''
+x-sap-api-type: REST
+x-sap-shortText: A service that is part of Derivation Manager which feeds performs the derivation manager search step
+x-sap-stateInfo:
+  state: Beta 
+tags:
+- name: Determination Engine
+  description: Performs lookup into the derivation management runtime rule tables to find the associated sustainability content information based on the incoming BAM and search sequence and enrich the BAM data with this information. 
+security:
+  - oAuth2: []
+paths:
+  /v1/determinationEngine/factors/determine:
+    post:
+      tags:
+      - Determination Engine
+      summary: An determination engine endpoint which accepts the BAM data and search sequence and returns the BAM enriched with sustainability content information.
+      description: An determination engine endpoint which accepts the BAM data and search sequence and searches the rule tales to find the related sustainability content information.It then enriches the BAM with this information and returns the enriched BAM
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeterminationRequest'
+        required: true
+
+      responses:
+        200:
+          description: The request parameters has been accepted and the response is returned with matching records enriched with the sustainability content information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        204: 
+          description: The request parameters have been accepted but there were no matching records.
+        400:
+          description: Bad request. You have provided invalid parameters in the payload. Please check the request and try again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21400
+                  message: Bad request. You have provided invalid parameters in the payload. Please check the request and try again.
+        401:
+          description: You are not authenticated or your authentication is incorrect. Please authenticate again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21401
+                  message: You are not authenticated or your authentication is incorrect. Please authenticate again.
+        403: 
+          description: Forbidden. You are not authorized to perform this operation. Please contact an administrator for access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21403
+                  message: Forbidden. You are not authorized to perform this operation. Please contact an administrator for access.
+        408:
+          description: The server has timed out. Please try again after some time.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21408
+                  message: The server has timed out. Please try again after some time.
+        409:
+          description: Conflict. You provided duplicate corelationId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21409
+                  message: Conflict. You provided duplicate corelationId.
+        429:
+          description: The server has gotten too many requests in a short time. Please space out your requests and try again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21429
+                  message: The server has gotten too many requests in a short time. Please space out your requests and try again.
+        500:
+          description: Internal Server Error. Please try again after some time. 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 21500
+                  message: Internal Server Error. Please try again after some time. 
+         
+components:
+  securitySchemes:
+    oAuth2:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: http://example.com/auth
+          scopes: {}
+  schemas:
+    DeterminationRequest:
+      title: The determination engine request payload. 
+      type: object
+      properties:
+        derivationId:
+          title: derivationId
+          description: Derivation configured by the user.
+          type: string
+        derivationRunId:
+          title: derivationRunId
+          description: Instance of a derivation run.
+          type: string
+        determinationInputRecords:
+          title: Entries corrosponding to BAM records
+          type: array
+          items:
+            $ref: '#/components/schemas/DeterminationInputRecord'
+        searchSequence:
+          title: List of rule Tables to search
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchSequence'
+        footprintIndicators: 
+          title: footprint indicators to be derived
+          type: array
+          enum:
+            - Carbon
+            - Energy
+          items:
+            title: footprint indicators relevant for this determination
+            type: string
+      example:
+        DeterminationRequest:
+            derivationId: 126a3e4c-064f-499e-b833-4dd41d7cde3c
+            derivationRunId: 996a3e4c-064f-499e-b833-4dd41d7cde3c
+            determinationInputRecords: 
+              - plant: 1001
+                companyCode: 1001
+                region: 1001
+                product: 1001
+                productGroup: 1001
+                supplier: 1001
+                quantity: 1001
+                baseUnitOfMeasure: 1001
+                controllingAreaCurrency: 1001
+                receivingPlant: 1001
+                issuingPlant: 1001
+                timeDuration: 
+                  start: 2020
+                  end: 2021
+            searchSequence: 
+              - target: 235a3e4c-064f-499e-b833-4dd41d7cde3
+                sequenceNo: 1
+              - target: 43a3e4c-064f-499e-b833-4dd41d7cde3c
+                sequenceNo: 1
+            footprintIndicators: [Co2Eq]
+    DeterminationInputRecord:
+      type: object
+      properties:
+        plant:
+          title: Plant ID
+          type: string
+        companyCode:
+          title: Company Code
+          type: string
+        region:
+          title: Region ID
+          type: string
+        product:
+          title: Product ID
+          type: string
+        productGroup:
+          title: Product Group
+          type: string
+        supplier:
+          title: Supplier ID
+          type: string
+        quantity:
+          title: Quantity
+          type: string
+        baseUnitOfMeasure :
+          title: Basic Unit of measure
+          type: string
+        controllingAreaCurrency  :
+          title: Controlling Area Currency Code
+          type: string
+        receivingPlant :
+          title: Receiving Plant ID
+          type: string
+        issuingPlant :
+          title: Issuing Plant ID
+          type: string
+        timeDuration :
+          title: Time interval to match in
+          type: object
+          properties:
+            start: 
+              type: string
+            end: 
+              type: string
+      example:
+           plant: 1001
+           companyCode: 1001
+           region: 1001
+           product: 1001
+           productGroup: 1001
+           supplier: 1001
+           quantity: 1001
+           baseUnitOfMeasure: 1001
+           controllingAreaCurrency: 1001
+           receivingPlant: 1001
+           issuingPlant: 1001
+           timeDuration: 
+            start: 2020
+            end: 2021
+    SearchSequence:
+      type: object
+      properties:
+        target:
+          title: ID of the target rule table
+          description: GUID of the rule table to lookup
+          type: string
+          example: 235a3e4c-064f-499e-b833-4dd41d7cde3
+        sequenceNo:
+          title: Rank of the rule table
+          description: SequenceNo determines the order in which the rule tables will be looked up . SequenceNo 1 will be searched first while a greater sequenceNo will be lookedup later
+          type: string
+          example: 3
+      example:
+        target: com.sap.css.derivationmanagement.country_plant
+        sequenceNo: 1
+    ErrorResponse:
+      title: ErrorResponse
+      description: A service response object that encapsulates technical error data.
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+    Error:
+      title: Error
+      description: A value type representing a technical error which may contain detailed descriptions about it.
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: >-
+            Technical code of the error to be used for support purposes.
+          example: 21404
+        message:
+          type: string
+          description: A message describing the encountered error.
+          example: An error occurred during request processing.
+        target:
+          type: string
+          format: uri   
+    SuccessResponse:
+      title: Array of enriched BAM data
+      type: array
+      items:
+        $ref: '#/components/schemas/EnrichedDeterminationRecord'
+    EnrichedDeterminationRecord:
+      title: Enriched BAM data
+      type: object
+      properties:
+        plant:
+          title: Plant ID
+          type: string
+        companyCode:
+          title: Company Code
+          type: string
+        region:
+          title: Region ID
+          type: string
+        product:
+          title: Product ID
+          type: string
+        productGroup:
+          title: Product Group
+          type: string
+        supplier:
+          title: Supplier ID
+          type: string
+        quantity:
+          title: Quantity
+          type: string
+        baseUnitOfMeasure :
+          title: Basic Unit of measure
+          type: string
+        controllingAreaCurrency  :
+          title: Controlling Area Currency Code
+          type: string
+        receivingPlant :
+          title: Receiving Plant ID
+          type: string
+        issuingPlant :
+          title: Issuing Plant ID
+          type: string
+        timeDuration :
+          title: Time interval to match in
+          type: object
+          properties:
+            start: 
+              type: string
+            end: 
+              type: string
+        sustainabilityID :
+          title: Matching sustainability content ID
+          type: string
+        factor :
+          title: Matching emission factor
+          type: string
+        factorUoM :
+          title: Matching emission factor unit of measure
+          type: string
+      example:
+           plant: 1001
+           companyCode: 1001
+           region: 1001
+           product: 1001
+           productGroup: 1001
+           supplier: 1001
+           quantity: 1001
+           baseUnitOfMeasure: 1001
+           controllingAreaCurrency: 1001
+           receivingPlant: 1001
+           issuingPlant: 1001
+           timeDuration: 
+            start: 2020
+            end: 2021
+           sustainabilityID: 826a3e4c-064f-499e-b833-4dd41d7cde3c
+           factor: 1.822
+           factorUoM: KG
